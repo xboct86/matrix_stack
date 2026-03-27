@@ -1,0 +1,2 @@
+# Скрипты с Windows CRLF ломают sh в контейнерах
+*.sh text eol=lf

@@ -1,0 +1,23 @@
+# Coturn для Synapse (static-auth-secret = turn_shared_secret в homeserver.yaml).
+# Конфиг генерирует coturn-init (профиль init); coturn поднимается обычным docker compose up -d
+# За NAT: TURN_EXTERNAL_IP = публичный IP; при нескольких NIC см. TURN_INTERNAL_IP в .env.example
+
+listening-port=${COTURN_LISTENING_PORT}
+fingerprint
+use-auth-secret
+static-auth-secret=${TURN_SHARED_SECRET}
+realm=${MATRIX_DOMAIN}
+no-software-attribute
+min-port=${TURN_MIN_PORT}
+max-port=${TURN_MAX_PORT}
+total-quota=100
+bps-capacity=0
+stale-nonce=600
+log-file=stdout
+simple-log
+no-cli
+no-tls
+no-dtls
+listening-ip=0.0.0.0
+relay-ip=0.0.0.0
+external-ip=${TURN_EXTERNAL_IP_LINE}

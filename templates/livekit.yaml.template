@@ -1,0 +1,14 @@
+# Сгенерировано livekit-init из .env — не редактируйте вручную (перезапишется при up).
+port: ${LIVEKIT_PORT}
+
+rtc:
+  port_range_start: ${LIVEKIT_UDP_PORT_START}
+  port_range_end: ${LIVEKIT_UDP_PORT_END}
+  tcp_port: ${LIVEKIT_TCP_PORT}
+  use_external_ip: true
+
+room:
+  auto_create: false
+
+keys:
+  "${LIVEKIT_API_KEY}": "${LIVEKIT_API_SECRET}"

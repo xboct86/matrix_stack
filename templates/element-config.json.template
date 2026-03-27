@@ -1,0 +1,23 @@
+{
+    "default_server_config": {
+        "m.homeserver": {
+            "base_url": "https://${MATRIX_DOMAIN}",
+            "server_name": "${MATRIX_SERVER_NAME}"
+        }
+    },
+    "brand": "${ELEMENT_WEB_BRAND}",
+    "show_labs_settings": ${ELEMENT_SHOW_LABS_SETTINGS},
+    "room_directory": {
+        "servers": ["${MATRIX_SERVER_NAME}"]
+    },
+    "disable_guests": ${ELEMENT_DISABLE_GUESTS},
+    "disable_custom_urls": ${ELEMENT_DISABLE_CUSTOM_URLS},
+    "features": {
+        "feature_element_call_video_rooms": ${ELEMENT_FEATURE_ELEMENT_CALL_VIDEO_ROOMS}
+    },
+    "element_call": {
+        "url": "https://${CALL_DOMAIN}",
+        "participant_limit": ${ELEMENT_CALL_PARTICIPANT_LIMIT},
+        "brand": "${ELEMENT_CALL_BRAND}"
+    }
+}

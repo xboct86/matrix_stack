@@ -1,0 +1,129 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Synapse: SNI подставляет caddy-init (MATRIX_DOMAIN [+ MATRIX_SERVER_NAME]).
+# OPTIONS + CORS; без gzip на /_matrix и /_synapse; long-poll /sync.
+@@SYNAPSE_SNI@@ {
+	@gzip_ok {
+		not path /_matrix/* /_synapse/*
+	}
+	encode @gzip_ok gzip
+
+	@cors_preflight method OPTIONS
+
+	# Federation discovery: m.server (хост из .env, порт 443 за Caddy)
+	handle /.well-known/matrix/server* {
+		header Content-Type application/json
+		respond `{"m.server":"{$MATRIX_DOMAIN}:443"}` 200
+	}
+
+	handle /.well-known/* {
+		handle @cors_preflight {
+			header Access-Control-Allow-Origin {header.Origin}
+			header Access-Control-Allow-Methods "GET, HEAD, POST, PUT, DELETE, OPTIONS"
+			header Access-Control-Allow-Headers "X-Requested-With, Content-Type, Authorization, Accept, Origin"
+			header Access-Control-Allow-Credentials "true"
+			header Access-Control-Max-Age "86400"
+			respond 204
+		}
+		reverse_proxy synapse:8008 {
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	# MatrixRTC: клиенты дергают v1, в Synapse путь MSC4143 (unstable)
+	handle /_matrix/client/v1/rtc/transports {
+		uri replace /_matrix/client/v1/rtc/transports /_matrix/client/unstable/org.matrix.msc4143/rtc/transports
+		reverse_proxy synapse:8008 {
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	handle /_matrix/* {
+		handle @cors_preflight {
+			header Access-Control-Allow-Origin {header.Origin}
+			header Access-Control-Allow-Methods "GET, HEAD, POST, PUT, DELETE, OPTIONS"
+			header Access-Control-Allow-Headers "X-Requested-With, Content-Type, Authorization, Accept, Origin"
+			header Access-Control-Allow-Credentials "true"
+			header Access-Control-Max-Age "86400"
+			respond 204
+		}
+		reverse_proxy synapse:8008 {
+			flush_interval -1
+			transport http {
+				read_timeout 360s
+				write_timeout 360s
+			}
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	handle /_synapse/* {
+		handle @cors_preflight {
+			header Access-Control-Allow-Origin {header.Origin}
+			header Access-Control-Allow-Methods "GET, HEAD, POST, PUT, DELETE, OPTIONS"
+			header Access-Control-Allow-Headers "X-Requested-With, Content-Type, Authorization, Accept, Origin"
+			header Access-Control-Allow-Credentials "true"
+			header Access-Control-Max-Age "86400"
+			respond 204
+		}
+		reverse_proxy synapse:8008 {
+			flush_interval -1
+			transport http {
+				read_timeout 360s
+				write_timeout 360s
+			}
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	handle {
+		respond "Matrix API — клиент: https://{$ELEMENT_DOMAIN}" 404
+	}
+}
+
+{$ELEMENT_DOMAIN} {
+	encode gzip
+	reverse_proxy element:80
+}
+
+{$CALL_DOMAIN} {
+	encode gzip
+	reverse_proxy element-call:8080
+}
+
+{$RTC_DOMAIN} {
+	encode gzip
+
+	handle_path /livekit/jwt* {
+		reverse_proxy lk-jwt:8080
+	}
+
+	handle_path /livekit/sfu* {
+		reverse_proxy livekit:{$LIVEKIT_PORT} {
+			transport http {
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+
+	handle {
+		respond "MatrixRTC: /livekit/jwt /livekit/sfu" 404
+	}
+}
+
+{$ADMIN_DOMAIN} {
+	encode gzip
+	respond "admin: not configured in install_matrix" 501
+}
+
+{$AUTH_DOMAIN} {
+	encode gzip
+	respond "auth: not configured in install_matrix" 501
+}

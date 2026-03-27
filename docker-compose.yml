@@ -1,0 +1,191 @@
+# Matrix (Synapse) + Element Web + Element Call + LiveKit + JWT + PostgreSQL + Caddy
+# Скопируйте .env.example в .env, задайте домен и секреты.
+#
+# Обычный запуск (только «боевые» контейнеры, без генераторов конфигов):
+#   docker compose up -d
+# Генерация конфигов на диск (после первого клона или смены .env / templates):
+#   docker compose --profile init up --abort-on-container-exit \
+#     livekit-init element-init element-call-init caddy-init coturn-init
+#
+# Образ Synapse: ghcr.io/element-hq/synapse — нужен для matrix_rtc / звонков.
+# Данные и конфиги: ./postgres/data, ./synapse/data, ./element/{data,config}, …
+# Параметры — в .env (см. .env.example).
+
+services:
+  postgres:
+    container_name: matrix-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-synapse}
+      # Пустой пароль: образ postgres сразу выходит с ошибкой — ловим на этапе compose:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env e.g. scripts/secrets_generate.sh}
+      POSTGRES_DB: ${POSTGRES_DB:-synapse}
+      # Явное значение: ${VAR:---foo} в compose даёт default «-foo» и ломает initdb.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    healthcheck:
+      # Подстановка с хоста (из .env при запуске compose), без $$ в контейнере — надёжнее для pg_isready
+      test: ["CMD-SHELL", "pg_isready -U \"${POSTGRES_USER:-synapse}\" -d \"${POSTGRES_DB:-synapse}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+
+  synapse:
+    container_name: matrix-synapse
+    image: ghcr.io/element-hq/synapse:latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./synapse/data:/data
+      - ./synapse/entrypoint.sh:/synapse-entrypoint.sh:ro
+      - ./synapse/merge-matrixrtc.py:/merge-matrixrtc.py:ro
+    entrypoint: ["/bin/sh", "/synapse-entrypoint.sh"]
+    expose:
+      - "8008"
+
+  livekit-init:
+    container_name: matrix-livekit-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./livekit/config:/data
+      - ./templates/livekit.yaml.template:/templates/livekit.yaml.template:ro
+      - ./livekit/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  livekit:
+    container_name: matrix-livekit
+    image: livekit/livekit-server:v1.9
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./livekit/config/livekit.yaml:/etc/livekit.yaml:ro
+    expose:
+      - "${LIVEKIT_PORT:-7880}"
+    ports:
+      - "${LIVEKIT_PORT:-7880}:${LIVEKIT_PORT:-7880}"
+      - "${LIVEKIT_TCP_PORT:-7881}:${LIVEKIT_TCP_PORT:-7881}"
+      - "${LIVEKIT_UDP_PORT_START:-50000}-${LIVEKIT_UDP_PORT_END:-50100}:${LIVEKIT_UDP_PORT_START:-50000}-${LIVEKIT_UDP_PORT_END:-50100}/udp"
+
+  lk-jwt:
+    container_name: matrix-lk-jwt
+    image: ghcr.io/element-hq/lk-jwt-service:0.3.0
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: wss://${RTC_DOMAIN}/livekit/sfu
+      LIVEKIT_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_FULL_ACCESS_HOMESERVERS: ${MATRIX_SERVER_NAME:-${MATRIX_DOMAIN}}
+    expose:
+      - "8080"
+
+  element-init:
+    container_name: matrix-element-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./element/config:/data
+      - ./templates/element-config.json.template:/templates/element-config.json.template:ro
+      - ./element/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  element-call-init:
+    container_name: matrix-element-call-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./element-call/config:/data
+      - ./templates/element-call-config.json.template:/templates/element-call-config.json.template:ro
+      - ./element-call/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  element:
+    container_name: matrix-element
+    image: vectorim/element-web:latest
+    restart: unless-stopped
+    volumes:
+      - ./element/config/element-config.json:/app/config.json:ro
+      - ./element/config/config.${ELEMENT_DOMAIN}.json:/app/config.${ELEMENT_DOMAIN}.json:ro
+
+  element-call:
+    container_name: matrix-element-call
+    image: ghcr.io/element-hq/element-call:v0.18.0
+    restart: unless-stopped
+    volumes:
+      - ./element-call/config/element-call-config.json:/app/config.json:ro
+    expose:
+      - "8080"
+
+  coturn-init:
+    container_name: matrix-coturn-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./coturn/config:/data
+      - ./templates/turnserver.conf.template:/templates/turnserver.conf.template:ro
+      - ./coturn/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  coturn:
+    container_name: matrix-coturn
+    image: coturn/coturn:4.6.2
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./coturn/config/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+
+  caddy-init:
+    container_name: matrix-caddy-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./caddy/config:/data
+      - ./templates/Caddyfile.template:/templates/Caddyfile.template:ro
+      - ./caddy/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  caddy:
+    container_name: matrix-caddy
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      synapse:
+        condition: service_started
+      element:
+        condition: service_started
+      element-call:
+        condition: service_started
+      livekit:
+        condition: service_started
+      lk-jwt:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config/autosave:/config

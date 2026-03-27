@@ -1,0 +1,51 @@
+# Секреты и локальная среда
+.env
+.env.*
+!.env.example
+
+# Списки пользователей и дампы
+users.txt
+backups/
+
+# Сгенерированные конфиги (docker compose --profile init …). Исходники — templates/
+caddy/config/Caddyfile
+caddy/config/Caddyfile_back
+caddy/config/autosave/*
+!caddy/config/autosave/.gitignore
+
+coturn/config/turnserver.conf
+
+element/config/*.json
+
+element-call/config/*.json
+
+livekit/config/livekit.yaml
+
+# Данные сервисов (только заглушки .gitignore внутри каталогов)
+postgres/data/*
+!postgres/data/.gitignore
+synapse/data/*
+!synapse/data/.gitignore
+caddy/data/*
+!caddy/data/.gitignore
+element/data/*
+!element/data/.gitignore
+element-call/data/*
+!element-call/data/.gitignore
+livekit/data/*
+!livekit/data/.gitignore
+coturn/data/*
+!coturn/data/.gitignore
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Python (скрипты Synapse)
+__pycache__/
+*.py[cod]
+*.pyo
