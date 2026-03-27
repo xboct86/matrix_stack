@@ -21,9 +21,8 @@ element-call/config/*.json
 
 livekit/config/livekit.yaml
 
-# Данные сервисов (только заглушки .gitignore внутри каталогов)
-postgres/data/*
-!postgres/data/.gitignore
+# Данные сервисов (каталоги создаёт Docker; в git — только маркеры вроде synapse/data/.gitignore)
+postgres/data/
 synapse/data/*
 !synapse/data/.gitignore
 caddy/data/*
