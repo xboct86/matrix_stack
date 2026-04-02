@@ -3,10 +3,6 @@
 .env.*
 !.env.example
 
-# Списки пользователей и дампы
-users.txt
-backups/
-
 # Сгенерированные конфиги (docker compose --profile init …). Исходники — templates/
 caddy/config/Caddyfile
 caddy/config/Caddyfile_back
