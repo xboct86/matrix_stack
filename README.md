@@ -28,7 +28,9 @@
    docker compose --profile init up --abort-on-container-exit \
      livekit-init element-init element-call-init synapse-admin-init caddy-init coturn-init
    ```
-   Альтернатива — по одному: `docker compose --profile init run --rm element-init` и т.д. (для coturn: **`coturn-init`**).
+   В **`docker-compose.yml`** init-сервисы связаны **`depends_on` + `service_completed_successfully`**, чтобы шли **по очереди**. Иначе при **`--abort-on-container-exit`** первый завершившийся init останавливал остальные контейнеры до записи файлов (например не появлялись **`element/config/*.json`**).
+
+   Альтернатива — по одному: `docker compose --profile init run --rm element-init` и т.д.; зависимости (**`livekit-init`** перед **`element-init`** и т.д.) подтянутся сами.
 
    Не рекомендуется **`docker compose --profile init up -d`** без списка сервисов: рабочие контейнеры и init могут подняться **параллельно**, и конфиг ещё не успеют записаться на диск.
 
