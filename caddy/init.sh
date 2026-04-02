@@ -4,6 +4,7 @@ set -e
 : "${MATRIX_DOMAIN:?MATRIX_DOMAIN missing in .env}"
 
 TPL=/templates/Caddyfile.template
+APEX_TPL=/templates/Caddyfile.matrix-apex.template
 if [ ! -f "$TPL" ]; then
 	echo "caddy-init: нет файла $TPL — на хосте должен быть templates/Caddyfile.template (файл)." >&2
 	echo "Если это каталог: rm -rf templates/Caddyfile.template && скопируйте файл из репозитория." >&2
@@ -12,12 +13,19 @@ if [ ! -f "$TPL" ]; then
 fi
 
 MATRIX_SERVER_NAME="${MATRIX_SERVER_NAME:-$MATRIX_DOMAIN}"
-if [ "$MATRIX_SERVER_NAME" = "$MATRIX_DOMAIN" ]; then
-	SYNAPSE_SNI="$MATRIX_DOMAIN"
-else
-	SYNAPSE_SNI="$MATRIX_DOMAIN, $MATRIX_SERVER_NAME"
+
+cp "$TPL" /data/Caddyfile
+chmod 644 /data/Caddyfile
+
+if [ "$MATRIX_SERVER_NAME" != "$MATRIX_DOMAIN" ]; then
+	if [ ! -f "$APEX_TPL" ]; then
+		echo "caddy-init: для MATRIX_SERVER_NAME≠MATRIX_DOMAIN нужен $APEX_TPL" >&2
+		exit 1
+	fi
+	apk add --no-cache gettext >/dev/null
+	export MATRIX_SERVER_NAME MATRIX_DOMAIN
+	envsubst < "$APEX_TPL" >> /data/Caddyfile
+	echo "caddy-init: добавлен apex well-known для MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME}"
 fi
 
-sed "s|@@SYNAPSE_SNI@@|${SYNAPSE_SNI}|g" "$TPL" > /data/Caddyfile
-chmod 644 /data/Caddyfile
-echo "caddy-init: SYNAPSE_SNI=${SYNAPSE_SNI} -> /data/Caddyfile"
+echo "caddy-init: MATRIX_DOMAIN=${MATRIX_DOMAIN} -> /data/Caddyfile"

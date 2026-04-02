@@ -165,6 +165,7 @@ services:
     volumes:
       - ./caddy/config:/data
       - ./templates/Caddyfile.template:/templates/Caddyfile.template:ro
+      - ./templates/Caddyfile.matrix-apex.template:/templates/Caddyfile.matrix-apex.template:ro
       - ./caddy/init.sh:/init.sh:ro
     entrypoint: ["/bin/sh", "/init.sh"]
 

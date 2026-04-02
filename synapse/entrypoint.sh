@@ -27,7 +27,8 @@ merge_matrixrtc() {
 
 if [ ! -f /data/homeserver.yaml ]; then
   export SYNAPSE_NO_TLS=yes
-  export SYNAPSE_SERVER_NAME="${MATRIX_DOMAIN}"
+  MATRIX_SERVER_NAME="${MATRIX_SERVER_NAME:-$MATRIX_DOMAIN}"
+  export SYNAPSE_SERVER_NAME="${MATRIX_SERVER_NAME}"
   export SYNAPSE_REPORT_STATS="${SYNAPSE_REPORT_STATS:-no}"
   "$PY" /start.py generate
   touch /data/.need-db-patch
@@ -57,6 +58,8 @@ cfg["database"] = {
     },
 }
 
+ms = os.environ.get("MATRIX_SERVER_NAME") or os.environ["MATRIX_DOMAIN"]
+cfg["server_name"] = ms
 cfg["public_baseurl"] = f"https://{os.environ['MATRIX_DOMAIN']}"
 cfg["use_x_forwarded_for"] = True
 
@@ -90,6 +93,10 @@ if not path.exists():
 cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
 if not isinstance(cfg, dict):
     raise SystemExit(0)
+
+ms = os.environ.get("MATRIX_SERVER_NAME") or os.environ["MATRIX_DOMAIN"]
+cfg["server_name"] = ms
+cfg["public_baseurl"] = f"https://{os.environ['MATRIX_DOMAIN']}"
 
 reg = os.environ.get("ENABLE_REGISTRATION", "true").lower() in ("1", "true", "yes")
 cfg["enable_registration"] = reg

@@ -2,9 +2,9 @@
 	email {$ACME_EMAIL}
 }
 
-# Synapse: SNI подставляет caddy-init (MATRIX_DOMAIN [+ MATRIX_SERVER_NAME]).
+# Synapse Client API на MATRIX_DOMAIN. Если MATRIX_SERVER_NAME ≠ MATRIX_DOMAIN, apex — templates/Caddyfile.matrix-apex.template.
 # OPTIONS + CORS; без gzip на /_matrix и /_synapse; long-poll /sync.
-@@SYNAPSE_SNI@@ {
+{$MATRIX_DOMAIN} {
 	@gzip_ok {
 		not path /_matrix/* /_synapse/*
 	}

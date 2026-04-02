@@ -82,6 +82,7 @@ replace_placeholder() {
 }
 
 replace_placeholder MATRIX_DOMAIN "$MATRIX_DOMAIN"
+replace_placeholder MATRIX_SERVER_NAME "$MATRIX_DOMAIN"
 replace_placeholder ELEMENT_DOMAIN "$ELEMENT_DOMAIN"
 replace_placeholder ADMIN_DOMAIN "$ADMIN_DOMAIN"
 replace_placeholder AUTH_DOMAIN "$AUTH_DOMAIN"
@@ -101,6 +102,7 @@ echo "Записан $OUT"
 echo ""
 echo "Поддомены:"
 echo "  MATRIX_DOMAIN=$MATRIX_DOMAIN"
+echo "  MATRIX_SERVER_NAME=$MATRIX_DOMAIN  (при необходимости смените на apex для MXID)"
 echo "  ELEMENT_DOMAIN=$ELEMENT_DOMAIN"
 echo "  … admin, auth, call, rtc, turn — см. .env"
 echo ""
