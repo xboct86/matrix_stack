@@ -4,15 +4,15 @@
 
 Поддерживается схема с **несколькими поддоменами**. Все перечисленные в `.env` имена должны иметь **DNS A/AAAA** на IP сервера; для Let’s Encrypt должны быть доступны **80/443** из интернета.
 
-Ожидаемые имена (пример **chat.ptolemey.net**):
+Ожидаемые имена (пример **chat.example.net**):
 
-- `matrix.chat.ptolemey.net` — Synapse (`MATRIX_DOMAIN`)
-- `element.chat.ptolemey.net` — Element Web (`ELEMENT_DOMAIN`)
-- `admin.chat.ptolemey.net` — Synapse Admin (`ADMIN_DOMAIN`)
-- `auth.chat.ptolemey.net` — `AUTH_DOMAIN` (заглушка; под MAS/OIDC позже)
-- `call.chat.ptolemey.net` — Element Call (`CALL_DOMAIN`)
-- `rtc.chat.ptolemey.net` — LiveKit + JWT (`RTC_DOMAIN`)
-- `turn.chat.ptolemey.net` — TURN (`TURN_DOMAIN`), **coturn** в стеке по умолчанию (см. раздел TURN)
+- `matrix.chat.example.net` — Synapse (`MATRIX_DOMAIN`)
+- `element.chat.example.net` — Element Web (`ELEMENT_DOMAIN`)
+- `admin.chat.example.net` — Synapse Admin (`ADMIN_DOMAIN`)
+- `auth.chat.example.net` — `AUTH_DOMAIN` (заглушка; под MAS/OIDC позже)
+- `call.chat.example.net` — Element Call (`CALL_DOMAIN`)
+- `rtc.chat.example.net` — LiveKit + JWT (`RTC_DOMAIN`)
+- `turn.chat.example.net` — TURN (`TURN_DOMAIN`), **coturn** в стеке по умолчанию (см. раздел TURN)
 
 ## Быстрый старт
 
@@ -48,13 +48,13 @@
 
 | Переменная | Пример | Назначение |
 |------------|--------|------------|
-| `MATRIX_DOMAIN` | `matrix.chat.ptolemey.net` | Хост Synapse в Caddy, API `/_matrix`, `.well-known`, при стандартной установке = `server_name` и MXID `@user:matrix.chat.…` |
+| `MATRIX_DOMAIN` | `matrix.chat.example.net` | Хост Synapse в Caddy, API `/_matrix`, `.well-known`, при стандартной установке = `server_name` и MXID `@user:matrix.chat.…` |
 | `MATRIX_SERVER_NAME` | (не задавать) | Только если в `homeserver.yaml` другой `server_name`; иначе в `element-init` подставляется `MATRIX_DOMAIN`. |
-| `ELEMENT_DOMAIN` | `element.chat.ptolemey.net` | Element Web — в браузере: `https://element.chat.ptolemey.net/` |
-| `CALL_DOMAIN` | `call.chat.ptolemey.net` | Element Call (`element_call.url`) |
-| `RTC_DOMAIN` | `rtc.chat.ptolemey.net` | `/livekit/jwt`, `/livekit/sfu` |
-| `ADMIN_DOMAIN` | `admin.chat.ptolemey.net` | [Synapse Admin](https://github.com/Awesome-Technologies/synapse-admin) — вход учётной записью **администратора** Synapse; API остаётся на **`MATRIX_DOMAIN`** (`restrictBaseUrl` в `synapse-admin/config/config.json`) |
-| `AUTH_DOMAIN` | `auth.chat.ptolemey.net` | Заглушка 501 — например MAS/OIDC позже |
+| `ELEMENT_DOMAIN` | `element.chat.example.net` | Element Web — в браузере: `https://element.chat.example.net/` |
+| `CALL_DOMAIN` | `call.chat.example.net` | Element Call (`element_call.url`) |
+| `RTC_DOMAIN` | `rtc.chat.example.net` | `/livekit/jwt`, `/livekit/sfu` |
+| `ADMIN_DOMAIN` | `admin.chat.example.net` | [Synapse Admin](https://github.com/Awesome-Technologies/synapse-admin) — вход учётной записью **администратора** Synapse; API остаётся на **`MATRIX_DOMAIN`** (`restrictBaseUrl` в `synapse-admin/config/config.json`) |
+| `AUTH_DOMAIN` | `auth.chat.example.net` | Заглушка 501 — например MAS/OIDC позже |
 | `ENABLE_USER_DIRECTORY_SEARCH` | `true` | В **`homeserver.yaml`**: поиск пользователей своего сервера в Element (`user_directory.search_all_users`). Для закрытых инсталлов можно `false`. |
 | `TURN_*` | см. `.env.example` | Секрет и домен для Synapse `turn_uris` / coturn; см. раздел ниже. |
 
@@ -157,7 +157,7 @@ docker cp "$(docker compose ps -q synapse)":/data/homeserver.yaml ./homeserver.y
 На странице `https://element.…/login` откройте **F12 → Console** и выполните:
 
 ```js
-fetch("https://matrix.chat.ptolemey.net/_matrix/client/versions")
+fetch("https://matrix.chat.example.net/_matrix/client/versions")
   .then((r) => r.json())
   .then(console.log)
   .catch(console.error);
@@ -167,17 +167,17 @@ fetch("https://matrix.chat.ptolemey.net/_matrix/client/versions")
 
 В **`element-config.json`** задано **`disable_custom_urls: true`**, чтобы не подхватывался старый или ошибочный homeserver. После смены шаблона: `docker compose --profile init run --rm element-init && docker compose up -d element`.
 
-Если в консоли **`matrix.ptolemey.net`** и **`ERR_NAME_NOT_RESOLVED`** — домен без `chat` не совпадает с вашим **`MATRIX_DOMAIN`**. В **`.env`** должно быть **`MATRIX_DOMAIN=matrix.chat.ptolemey.net`** (как в Synapse `server_name`). Проверка: `grep MATRIX_DOMAIN .env` и **`cat element/config/element-config.json`** — в `default_server_config`/`room_directory` везде **полное** имя. Затем снова **`docker compose --profile init run --rm element-init`** и **`docker compose up -d element`**. В браузере для **`element.chat.…`** удалите **данные сайта** (или инкогнито): в IndexedDB/localStorage часто остаётся старый `hs_url`.
+Если в консоли **`matrix.example.net`** и **`ERR_NAME_NOT_RESOLVED`** — домен без `chat` не совпадает с вашим **`MATRIX_DOMAIN`**. В **`.env`** должно быть **`MATRIX_DOMAIN=matrix.chat.example.net`** (как в Synapse `server_name`). Проверка: `grep MATRIX_DOMAIN .env` и **`cat element/config/element-config.json`** — в `default_server_config`/`room_directory` везде **полное** имя. Затем снова **`docker compose --profile init run --rm element-init`** и **`docker compose up -d element`**. В браузере для **`element.chat.…`** удалите **данные сайта** (или инкогнито): в IndexedDB/localStorage часто остаётся старый `hs_url`.
 
-Element сначала запрашивает **`/config.<hostname>.json`**, и только при 404 — **`/config.json`**. Старый **`/config.json`** часто висит в **Service Worker**, из‑за этого в консоли снова **`matrix.ptolemey.net`** и **`default_server_name`**, хотя на диске уже правильный JSON. В compose **`element-init`** кладёт копию в **`element/config/config.${ELEMENT_DOMAIN}.json`**, контейнер монтирует её в **`/app/`**. После обновления: **`docker compose --profile init run --rm element-init && docker compose up -d element`**. В браузере: **Application → Clear storage** (включая service workers) или инкогнито.
+Element сначала запрашивает **`/config.<hostname>.json`**, и только при 404 — **`/config.json`**. Старый **`/config.json`** часто висит в **Service Worker**, из‑за этого в консоли снова **`matrix.example.net`** и **`default_server_name`**, хотя на диске уже правильный JSON. В compose **`element-init`** кладёт копию в **`element/config/config.${ELEMENT_DOMAIN}.json`**, контейнер монтирует её в **`/app/`**. После обновления: **`docker compose --profile init run --rm element-init && docker compose up -d element`**. В браузере: **Application → Clear storage** (включая service workers) или инкогнито.
 
 ## Один домен `matrix.chat…` (рекомендуется)
 
-Удобнее, когда **`MATRIX_DOMAIN` = хост API = `server_name` = суффикс MXID** (всё **`matrix.chat.…`**). В **`.env`** задайте **`MATRIX_DOMAIN=matrix.chat.ptolemey.net`**, строку **`MATRIX_SERVER_NAME`** **не указывайте** (или оставьте равной `MATRIX_DOMAIN`) — тогда Element и **`caddy-init`** используют одно имя, отдельный DNS вида **`matrix.ptolemey.net`** не нужен.
+Удобнее, когда **`MATRIX_DOMAIN` = хост API = `server_name` = суффикс MXID** (всё **`matrix.chat.…`**). В **`.env`** задайте **`MATRIX_DOMAIN=matrix.chat.example.net`**, строку **`MATRIX_SERVER_NAME`** **не указывайте** (или оставьте равной `MATRIX_DOMAIN`) — тогда Element и **`caddy-init`** используют одно имя, отдельный DNS вида **`matrix.example.net`** не нужен.
 
 Проверка: **`docker compose exec synapse grep '^server_name:' /data/homeserver.yaml`** и логин в Synapse **`Logging in user @логин:matrix.chat…`** — совпадает с **`MATRIX_DOMAIN`**.
 
-### Уже развёрнут Synapse с `server_name: matrix.ptolemey.net`
+### Уже развёрнут Synapse с `server_name: matrix.example.net`
 
 Просто поменять строку в **`homeserver.yaml`** **нельзя** — в Postgres уже записаны события и пользователи под старым именем сервера.
 
@@ -186,7 +186,7 @@ Element сначала запрашивает **`/config.<hostname>.json`**, и 
   docker compose down
   docker volume rm matrix_postgres-data matrix_synapse-data   # только если ещё использовали именованные тома; имена: docker volume ls
   ```
-  В **`.env`**: только **`MATRIX_DOMAIN=matrix.chat.ptolemey.net`**, без второго домена; **`docker compose up -d`**. Заново создайте пользователей (**регистрация** или **`register_new_matrix_user`**). Затем **`docker compose --profile init run --rm element-init && docker compose up -d element lk-jwt caddy`**.
+  В **`.env`**: только **`MATRIX_DOMAIN=matrix.chat.example.net`**, без второго домена; **`docker compose up -d`**. Заново создайте пользователей (**регистрация** или **`register_new_matrix_user`**). Затем **`docker compose --profile init run --rm element-init && docker compose up -d element lk-jwt caddy`**.
 
 - **Продакшен с ценными данными:** смотрите официальную документацию Synapse по смене имени сервера / миграции (вне этого репозитория) или оставьте текущий `server_name` и второй хост в DNS+Caddy.
 
@@ -203,16 +203,16 @@ Element сначала запрашивает **`/config.<hostname>.json`**, и 
 После правок Caddy: `docker compose up -d --force-recreate caddy`. Если меняли только Synapse (`web_client_location`): `docker compose restart synapse`.
 
 Дождитесь **`(healthy)`** у контейнера Synapse (не только `health: starting`), затем с клиента:  
-`curl -sS "https://matrix.chat.ptolemey.net/_matrix/client/versions"`.  
+`curl -sS "https://matrix.chat.example.net/_matrix/client/versions"`.  
 Если ответ есть, а Element всё ещё «не связаться» — обновите **`templates/Caddyfile.template`** и перезапустите **caddy**.
 
 После того как связь появится: **`ENABLE_REGISTRATION=true`** в `.env` (по умолчанию в compose так и есть) синхронизируется в **`homeserver.yaml`** при каждом старте Synapse; для отключения открытой регистрации задайте **`ENABLE_REGISTRATION=false`**, затем **`docker compose up -d synapse`**. Если регистрация выключена — создайте пользователя:  
 `docker compose exec synapse register_new_matrix_user -c /data/homeserver.yaml -a -u USER http://localhost:8008`.
 
 Проверка с вашего ПК:  
-`curl -sS "https://matrix.chat.ptolemey.net/_matrix/client/versions"`  
+`curl -sS "https://matrix.chat.example.net/_matrix/client/versions"`  
 и с Origin:  
-`curl -sSI -H "Origin: https://element.chat.ptolemey.net" "https://matrix.chat.ptolemey.net/_matrix/client/versions"`  
+`curl -sSI -H "Origin: https://element.chat.example.net" "https://matrix.chat.example.net/_matrix/client/versions"`  
 во втором ответе должны быть строки `access-control-allow-origin`.
 
 ## `set: Illegal option -` в логах Synapse
