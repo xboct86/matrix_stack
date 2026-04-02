@@ -5,10 +5,10 @@
 #   docker compose up -d
 # Генерация конфигов на диск (после первого клона или смены .env / templates):
 #   docker compose --profile init up --abort-on-container-exit \
-#     livekit-init element-init element-call-init caddy-init coturn-init
+#     livekit-init element-init element-call-init synapse-admin-init caddy-init coturn-init
 #
 # Образ Synapse: ghcr.io/element-hq/synapse — нужен для matrix_rtc / звонков.
-# Данные и конфиги: ./postgres/data, ./synapse/data, ./element/{data,config}, …
+# Данные и конфиги: ./postgres/data, ./synapse/data, ./element/{data,config}, ./synapse-admin/config, …
 # Параметры — в .env (см. .env.example).
 
 services:
@@ -101,6 +101,19 @@ services:
       - ./element/init.sh:/init.sh:ro
     entrypoint: ["/bin/sh", "/init.sh"]
 
+  synapse-admin-init:
+    container_name: matrix-synapse-admin-init
+    profiles:
+      - init
+    image: alpine:3.20
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./synapse-admin/config:/data
+      - ./templates/synapse-admin-config.json.template:/templates/synapse-admin-config.json.template:ro
+      - ./synapse-admin/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
   element-call-init:
     container_name: matrix-element-call-init
     profiles:
@@ -121,6 +134,15 @@ services:
     volumes:
       - ./element/config/element-config.json:/app/config.json:ro
       - ./element/config/config.${ELEMENT_DOMAIN}.json:/app/config.${ELEMENT_DOMAIN}.json:ro
+
+  synapse-admin:
+    container_name: matrix-synapse-admin
+    image: awesometechnologies/synapse-admin:latest
+    restart: unless-stopped
+    volumes:
+      - ./synapse-admin/config/config.json:/app/config.json:ro
+    expose:
+      - "80"
 
   element-call:
     container_name: matrix-element-call
@@ -175,6 +197,8 @@ services:
       synapse:
         condition: service_started
       element:
+        condition: service_started
+      synapse-admin:
         condition: service_started
       element-call:
         condition: service_started

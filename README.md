@@ -1,6 +1,6 @@
 # Docker Compose: Synapse + Element + Element Call + LiveKit + PostgreSQL + Caddy
 
-В репозитории **нет** **`.env`** и **сгенерированных конфигов** (`caddy/config/Caddyfile`, `element/config/*.json`, `livekit/config/livekit.yaml`, `coturn/config/turnserver.conf` и т.д.) — они создаются на сервере. После **`git clone`** задайте **`.env`** (**`./scripts/bootstrap-env.sh`** или **`cp .env.example .env`**), затем профиль **`init`** и **`docker compose up -d`**. Лицензия: [MIT](LICENSE).
+В репозитории **нет** **`.env`** и **сгенерированных конфигов** (`caddy/config/Caddyfile`, `element/config/*.json`, `synapse-admin/config/config.json`, `livekit/config/livekit.yaml`, `coturn/config/turnserver.conf` и т.д.) — они создаются на сервере. После **`git clone`** задайте **`.env`** (**`./scripts/bootstrap-env.sh`** или **`cp .env.example .env`**), затем профиль **`init`** и **`docker compose up -d`**. Лицензия: [MIT](LICENSE).
 
 Поддерживается схема с **несколькими поддоменами**. Все перечисленные в `.env` имена должны иметь **DNS A/AAAA** на IP сервера; для Let’s Encrypt должны быть доступны **80/443** из интернета.
 
@@ -8,7 +8,7 @@
 
 - `matrix.chat.ptolemey.net` — Synapse (`MATRIX_DOMAIN`)
 - `element.chat.ptolemey.net` — Element Web (`ELEMENT_DOMAIN`)
-- `admin.chat.ptolemey.net` — `ADMIN_DOMAIN` (заглушка в Caddy, пока не подключите свой backend)
+- `admin.chat.ptolemey.net` — Synapse Admin (`ADMIN_DOMAIN`)
 - `auth.chat.ptolemey.net` — `AUTH_DOMAIN` (заглушка; под MAS/OIDC позже)
 - `call.chat.ptolemey.net` — Element Call (`CALL_DOMAIN`)
 - `rtc.chat.ptolemey.net` — LiveKit + JWT (`RTC_DOMAIN`)
@@ -26,7 +26,7 @@
 3. **Сгенерировать конфиги на диск** (после первого клона или при смене `.env` / `templates/*`). Обычный **`docker compose up`** **не** поднимает init-контейнеры (профиль **`init`**):
    ```bash
    docker compose --profile init up --abort-on-container-exit \
-     livekit-init element-init element-call-init caddy-init coturn-init
+     livekit-init element-init element-call-init synapse-admin-init caddy-init coturn-init
    ```
    Альтернатива — по одному: `docker compose --profile init run --rm element-init` и т.д. (для coturn: **`coturn-init`**).
 
@@ -53,7 +53,7 @@
 | `ELEMENT_DOMAIN` | `element.chat.ptolemey.net` | Element Web — в браузере: `https://element.chat.ptolemey.net/` |
 | `CALL_DOMAIN` | `call.chat.ptolemey.net` | Element Call (`element_call.url`) |
 | `RTC_DOMAIN` | `rtc.chat.ptolemey.net` | `/livekit/jwt`, `/livekit/sfu` |
-| `ADMIN_DOMAIN` | `admin.chat.ptolemey.net` | Заглушка 501 — при необходимости замените в Caddy |
+| `ADMIN_DOMAIN` | `admin.chat.ptolemey.net` | [Synapse Admin](https://github.com/Awesome-Technologies/synapse-admin) — вход учётной записью **администратора** Synapse; API остаётся на **`MATRIX_DOMAIN`** (`restrictBaseUrl` в `synapse-admin/config/config.json`) |
 | `AUTH_DOMAIN` | `auth.chat.ptolemey.net` | Заглушка 501 — например MAS/OIDC позже |
 | `ENABLE_USER_DIRECTORY_SEARCH` | `true` | В **`homeserver.yaml`**: поиск пользователей своего сервера в Element (`user_directory.search_all_users`). Для закрытых инсталлов можно `false`. |
 | `TURN_*` | см. `.env.example` | Секрет и домен для Synapse `turn_uris` / coturn; см. раздел ниже. |
@@ -86,9 +86,10 @@
 | `livekit` | SFU |
 | `lk-jwt` | JWT для LiveKit |
 | `element` | Element Web |
+| `synapse-admin` | Веб-админка Synapse на `ADMIN_DOMAIN` |
 | `element-call` | SPA на `CALL_DOMAIN` |
 | `caddy` | TLS и маршрутизация по vhost |
-| `*-init` | Генерация конфигов (профиль **`init`**): **`element/init.sh`**, **`element-call/init.sh`**, **`livekit/init.sh`**, **`caddy/init.sh`**, **`coturn/init.sh`** (сервис **`coturn-init`**) → каталоги **`*/config/`** |
+| `*-init` | Генерация конфигов (профиль **`init`**): **`element/init.sh`**, **`element-call/init.sh`**, **`synapse-admin/init.sh`**, **`livekit/init.sh`**, **`caddy/init.sh`**, **`coturn/init.sh`** (сервис **`coturn-init`**) → каталоги **`*/config/`** |
 
 ## Переменные `.env` (кроме доменов)
 
@@ -107,7 +108,9 @@
 
 ## admin / auth
 
-Сейчас в `templates/Caddyfile.template` для `ADMIN_DOMAIN` и `AUTH_DOMAIN` отдаётся ответ **501**. Рабочий файл Caddy — **`caddy/config/Caddyfile`** (генерирует сервис **`caddy-init`**, см. профиль **`init`** в README / `docker-compose.yml`). Когда поднимете свой backend (админка, MAS и т.д.), замените блоки на `reverse_proxy` к контейнеру или внешнему порту.
+**`ADMIN_DOMAIN`** обслуживает контейнер **`synapse-admin`** (образ `awesometechnologies/synapse-admin`). Вход — логин и пароль **администратора** Synapse (созданного с **`register_new_matrix_user -a`** или эквивалентом). Запросы к API идут на **`https://MATRIX_DOMAIN`**; в **`synapse-admin/config/config.json`** задаётся **`restrictBaseUrl`**, чтобы нельзя было сменить homeserver в UI. После смены **`MATRIX_DOMAIN`**: **`docker compose --profile init run --rm synapse-admin-init`**, затем **`docker compose up -d synapse-admin`**.
+
+Для **`AUTH_DOMAIN`** в `templates/Caddyfile.template` по-прежнему ответ **501** (под MAS/OIDC позже). Рабочий Caddy — **`caddy/config/Caddyfile`** (генерирует **`caddy-init`**).
 
 ## Связь с `deploy/Caddyfile`
 
@@ -130,7 +133,7 @@ docker compose up -d
 | **`synapse/data/`** | `homeserver.yaml`, медиа и состояние Synapse (`/data` в контейнере) |
 | **`caddy/data/`** | сертификаты и файловое хранилище Caddy (`/data` в контейнере) |
 | **`caddy/config/`** | сгенерированный **`Caddyfile`**, подкаталог **`autosave/`** — служебный конфиг Caddy (`/config` в контейнере) |
-| **`element/config/`**, **`element-call/config/`**, **`livekit/config/`**, **`coturn/config/`** | JSON/YAML/конфиги, которые пишут `*-init` |
+| **`element/config/`**, **`element-call/config/`**, **`synapse-admin/config/`**, **`livekit/config/`**, **`coturn/config/`** | JSON/YAML/конфиги, которые пишут `*-init` |
 
 Каталоги **`element/data/`**, **`element-call/data/`**, **`livekit/data/`**, **`coturn/data/`** зарезервированы под будущие данные на хосте (сейчас пустые).
 

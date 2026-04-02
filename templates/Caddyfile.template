@@ -120,7 +120,7 @@
 
 {$ADMIN_DOMAIN} {
 	encode gzip
-	respond "admin: not configured in install_matrix" 501
+	reverse_proxy synapse-admin:80
 }
 
 {$AUTH_DOMAIN} {

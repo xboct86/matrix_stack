@@ -1,0 +1,3 @@
+{
+  "restrictBaseUrl": "https://${MATRIX_DOMAIN}"
+}
