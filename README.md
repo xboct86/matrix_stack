@@ -25,12 +25,14 @@
 
 3. **Сгенерировать конфиги на диск** (после первого клона или при смене `.env` / `templates/*`). Обычный **`docker compose up`** **не** поднимает init-контейнеры (профиль **`init`**):
    ```bash
-   docker compose --profile init up --abort-on-container-exit \
+   docker compose --profile init up \
      livekit-init element-init element-call-init synapse-admin-init caddy-init coturn-init
    ```
-   В **`docker-compose.yml`** init-сервисы связаны **`depends_on` + `service_completed_successfully`**, чтобы шли **по очереди**. Иначе при **`--abort-on-container-exit`** первый завершившийся init останавливал остальные контейнеры до записи файлов (например не появлялись **`element/config/*.json`**).
+   **Без** `-d` и **без** `--abort-on-container-exit`: все init стартуют **параллельно**, команда **ждёт**, пока **каждый** контейнер завершится, и только тогда выходит. Так конфиги успевают записаться во все каталоги.
 
-   Альтернатива — по одному: `docker compose --profile init run --rm element-init` и т.д.; зависимости (**`livekit-init`** перед **`element-init`** и т.д.) подтянутся сами.
+   Флаг **`--abort-on-container-exit`** здесь **не используйте**: при нём первый завершившийся init **останавливает** остальные — часть конфигов не появится.
+
+   Альтернатива — по одному: `docker compose --profile init run --rm element-init` и т.д.
 
    Не рекомендуется **`docker compose --profile init up -d`** без списка сервисов: рабочие контейнеры и init могут подняться **параллельно**, и конфиг ещё не успеют записаться на диск.
 

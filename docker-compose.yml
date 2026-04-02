@@ -4,9 +4,10 @@
 # Обычный запуск (только «боевые» контейнеры, без генераторов конфигов):
 #   docker compose up -d
 # Генерация конфигов на диск (после первого клона или смены .env / templates):
-#   docker compose --profile init up --abort-on-container-exit \
+#   docker compose --profile init up \
 #     livekit-init element-init element-call-init synapse-admin-init caddy-init coturn-init
-# (init-сервисы в цепочке depends_on — по очереди; иначе --abort-on-container-exit обрывает остальные)
+# Без -d и без --abort-on-container-exit: init идут параллельно, команда ждёт, пока все завершатся.
+# С --abort-on-container-exit первый вышедший init остановит остальные — не используйте для параллели.
 #
 # Образ Synapse: ghcr.io/element-hq/synapse — нужен для matrix_rtc / звонков.
 # Данные и конфиги: ./postgres/data, ./synapse/data, ./element/{data,config}, ./synapse-admin/config, …
@@ -96,9 +97,6 @@ services:
     image: alpine:3.20
     restart: "no"
     env_file: .env
-    depends_on:
-      livekit-init:
-        condition: service_completed_successfully
     volumes:
       - ./element/config:/data
       - ./templates/element-config.json.template:/templates/element-config.json.template:ro
@@ -112,9 +110,6 @@ services:
     image: alpine:3.20
     restart: "no"
     env_file: .env
-    depends_on:
-      element-init:
-        condition: service_completed_successfully
     volumes:
       - ./element-call/config:/data
       - ./templates/element-call-config.json.template:/templates/element-call-config.json.template:ro
@@ -128,9 +123,6 @@ services:
     image: alpine:3.20
     restart: "no"
     env_file: .env
-    depends_on:
-      element-call-init:
-        condition: service_completed_successfully
     volumes:
       - ./synapse-admin/config:/data
       - ./templates/synapse-admin-config.json.template:/templates/synapse-admin-config.json.template:ro
@@ -170,9 +162,6 @@ services:
     image: alpine:3.20
     restart: "no"
     env_file: .env
-    depends_on:
-      synapse-admin-init:
-        condition: service_completed_successfully
     volumes:
       - ./caddy/config:/data
       - ./templates/Caddyfile.template:/templates/Caddyfile.template:ro
@@ -186,9 +175,6 @@ services:
     image: alpine:3.20
     restart: "no"
     env_file: .env
-    depends_on:
-      caddy-init:
-        condition: service_completed_successfully
     volumes:
       - ./coturn/config:/data
       - ./templates/turnserver.conf.template:/templates/turnserver.conf.template:ro
