@@ -53,7 +53,7 @@
 | Переменная | Пример | Назначение |
 |------------|--------|------------|
 | `MATRIX_DOMAIN` | `matrix.chat.example.net` | Хост Synapse в Caddy: HTTPS Client API (`/_matrix`, `/_synapse`), `public_baseurl` в Synapse |
-| `MATRIX_SERVER_NAME` | `matrix.chat.example.net` или apex | Суффикс MXID `@user:…` и `server_name` в Synapse. По умолчанию = `MATRIX_DOMAIN`. Если задать apex (например `example.net`), а `MATRIX_DOMAIN` = `matrix.chat.example.net`, то MXID вида `@user:example.net`, API остаётся на `matrix.*`; **caddy-init** добавляет vhost на apex только с `.well-known` (шаблон **`templates/Caddyfile.matrix-apex.template`**). Нужен **DNS на apex**. |
+| `MATRIX_SERVER_NAME` | `matrix.chat.example.net` или apex | Суффикс MXID `@user:…` и `server_name` в Synapse. По умолчанию = `MATRIX_DOMAIN`. Если задать apex отдельно от `MATRIX_DOMAIN`, **caddy-init** добавляет vhost (**`templates/Caddyfile.matrix-apex.template`**): **`server`** — статический `m.server`; **`client`** — **прокси на Synapse** с `Host: MATRIX_DOMAIN`, чтобы в ответе были MSC4143 / MatrixRTC (Element X). Нужен **DNS на apex**. |
 | `ELEMENT_DOMAIN` | `element.chat.example.net` | Element Web — в браузере: `https://element.chat.example.net/` |
 | `CALL_DOMAIN` | `call.chat.example.net` | Element Call (`element_call.url`) |
 | `RTC_DOMAIN` | `rtc.chat.example.net` | `/livekit/jwt`, `/livekit/sfu` |
@@ -183,7 +183,7 @@ Element сначала запрашивает **`/config.<hostname>.json`**, и 
 
 ## Apex для MXID (`@user:example.net`), API на `matrix.…`
 
-Если **`MATRIX_SERVER_NAME`** = apex (например **`example.net`**), а **`MATRIX_DOMAIN`** = **`matrix.chat.example.net`**: в Synapse **`server_name`** и MXID — на apex, **`public_baseurl`** — на `https://matrix.chat.example.net`. Нужны **DNS A/AAAA на apex**; **`caddy-init`** добавляет блок с **`/.well-known/matrix/server`** и **`client`** на **`MATRIX_SERVER_NAME`**. Затем **`docker compose --profile init run --rm caddy-init`** и **`docker compose up -d --force-recreate caddy`**. Новая установка: задайте переменные **до** первого старта Synapse. Смена `server_name` на уже заполненной БД — по [документации Synapse](https://element-hq.github.io/synapse/latest/), не «правкой одной строки».
+Если **`MATRIX_SERVER_NAME`** = apex (например **`chat.example.net`**), а **`MATRIX_DOMAIN`** = **`matrix.chat.example.net`**: в Synapse **`server_name`** и MXID — на apex, **`public_baseurl`** — на `https://matrix.chat.example.net`. Нужны **DNS A/AAAA на apex**; на apex **`/.well-known/matrix/client`** проксируется к Synapse (как на matrix-хосте), иначе клиенты вроде Element X не видят RTC в well-known. Затем **`docker compose --profile init run --rm caddy-init`** и **`docker compose up -d --force-recreate caddy`**. Новая установка: задайте переменные **до** первого старта Synapse. Смена `server_name` на уже заполненной БД — по [документации Synapse](https://element-hq.github.io/synapse/latest/), не «правкой одной строки».
 
 ### Уже развёрнут Synapse с `server_name: matrix.example.net`
 
