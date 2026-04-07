@@ -53,7 +53,7 @@
 | Переменная | Пример | Назначение |
 |------------|--------|------------|
 | `MATRIX_DOMAIN` | `matrix.chat.example.net` | Хост Synapse в Caddy: HTTPS Client API (`/_matrix`, `/_synapse`), `public_baseurl` в Synapse |
-| `MATRIX_SERVER_NAME` | `matrix.chat.example.net` или apex | Суффикс MXID `@user:…` и `server_name` в Synapse. По умолчанию = `MATRIX_DOMAIN`. Если задать apex отдельно от `MATRIX_DOMAIN`, **caddy-init** добавляет vhost (**`templates/Caddyfile.matrix-apex.template`**): **`server`** — статический `m.server`; **`client`** — **прокси на Synapse** с `Host: MATRIX_DOMAIN`, чтобы в ответе были MSC4143 / MatrixRTC (Element X). Нужен **DNS на apex**. |
+| `MATRIX_SERVER_NAME` | `matrix.chat.example.net` или apex | Суффикс MXID `@user:…` и `server_name` в Synapse. По умолчанию = `MATRIX_DOMAIN`. Если задать apex отдельно от `MATRIX_DOMAIN`, **caddy-init** дописывает **`templates/Caddyfile.matrix-apex.template`**: в файле плейсхолдеры **`{$MATRIX_SERVER_NAME}`** / **`{$MATRIX_DOMAIN}`** (как в основном Caddyfile) — значения подставляет **Caddy** из **`env_file`** при старте, а не `envsubst` при init. **`client`** — прокси на Synapse с `Host: {$MATRIX_DOMAIN}` (MSC4143 для Element X). Нужен **DNS на apex**. |
 | `ELEMENT_DOMAIN` | `element.chat.example.net` | Element Web — в браузере: `https://element.chat.example.net/` |
 | `CALL_DOMAIN` | `call.chat.example.net` | Element Call (`element_call.url`) |
 | `RTC_DOMAIN` | `rtc.chat.example.net` | `/livekit/jwt`, `/livekit/sfu` |

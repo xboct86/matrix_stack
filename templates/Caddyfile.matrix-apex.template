@@ -1,13 +1,13 @@
 # MXID / discovery: server_name (apex) ≠ хост API (MATRIX_DOMAIN)
-# client well-known проксируется на Synapse с Host=MATRIX_DOMAIN — те же MSC4143 поля, что на matrix-хосте (Element X).
-${MATRIX_SERVER_NAME} {
+# {$VAR} подставляет Caddy из окружения (env_file у сервиса caddy), как в Caddyfile.template — без envsubst в caddy-init.
+{$MATRIX_SERVER_NAME} {
 	encode gzip
 
 	@cors_preflight method OPTIONS
 
 	handle /.well-known/matrix/server* {
 		header Content-Type application/json
-		respond `{"m.server":"${MATRIX_DOMAIN}:443"}` 200
+		respond `{"m.server":"{$MATRIX_DOMAIN}:443"}` 200
 	}
 
 	handle /.well-known/matrix/client* {
@@ -20,12 +20,12 @@ ${MATRIX_SERVER_NAME} {
 			respond 204
 		}
 		reverse_proxy synapse:8008 {
-			header_up Host ${MATRIX_DOMAIN}
+			header_up Host {$MATRIX_DOMAIN}
 			header_up X-Forwarded-Proto https
 		}
 	}
 
 	handle {
-		respond "Homeserver API: https://${MATRIX_DOMAIN}" 404
+		respond "Homeserver API: https://{$MATRIX_DOMAIN}" 404
 	}
 }

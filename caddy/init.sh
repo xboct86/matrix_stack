@@ -22,10 +22,8 @@ if [ "$MATRIX_SERVER_NAME" != "$MATRIX_DOMAIN" ]; then
 		echo "caddy-init: для MATRIX_SERVER_NAME≠MATRIX_DOMAIN нужен $APEX_TPL" >&2
 		exit 1
 	fi
-	apk add --no-cache gettext >/dev/null
-	export MATRIX_SERVER_NAME MATRIX_DOMAIN
-	envsubst < "$APEX_TPL" >> /data/Caddyfile
-	echo "caddy-init: добавлен apex well-known для MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME}"
+	cat "$APEX_TPL" >> /data/Caddyfile
+	echo "caddy-init: добавлен apex-блок (Caddy подставит MATRIX_SERVER_NAME/MATRIX_DOMAIN из env при старте)"
 fi
 
 echo "caddy-init: MATRIX_DOMAIN=${MATRIX_DOMAIN} -> /data/Caddyfile"
